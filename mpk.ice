@@ -10,7 +10,8 @@ module SIP {
     OFFLINE,
     WAITONLINE,
     WAITOFFLINE,
-  }
+  };
+
   struct Time {
     int hour;
     int minute;
