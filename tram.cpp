@@ -326,12 +326,13 @@ int main(int argc, char *argv[]) {
             }
         }
 
-        linePrx->unregisterTram(tramPrx);
+
         mpk->getDepo("Zajezdnia1")->unregisterTram(tramPrx);
         cout << "You are in the depot, waiting for tram to go offline..." << endl;
 
         while (tram->getStatus(Ice::Current()) != SIP::TramStatus::OFFLINE) {
         }
+         linePrx->unregisterTram(tramPrx);
 
     } catch (const Ice::Exception &e) {
         cout << e << endl;

@@ -201,6 +201,15 @@ public:
             currentTrams.erase(it);
         }
     }
+    void removeComingTram(shared_ptr <TramPrx> tram, const Ice::Current&) {
+    for (auto it = coming_trams.begin(); it != coming_trams.end(); ++it) {
+        if (it->tram->ice_getIdentity() == tram->ice_getIdentity()) {
+            coming_trams.erase(it);
+            cout << "Tram number:" << tram->getStockNumber()<<"removed from Stop: " << name << endl;
+            break;
+        }
+    }
+}
 };
 
 class LineI : public SIP::Line {
@@ -231,18 +240,22 @@ public:
         cout << "New tram with number: " << tram->getStockNumber() << " has been added" << endl;
     }
 
-    void unregisterTram(::std::shared_ptr<TramPrx> tram, const Ice::Current&) override {
-        auto it = find_if(all_trams.begin(), all_trams.end(),
-                         [&tram](const TramInfo& info) {
-                             return info.tram->getStockNumber() == tram->getStockNumber();
-                         });
-
-        if (it != all_trams.end()) {
-            cout << "Tram number " << tram->getStockNumber() << " is leaving the line" << endl;
-            cout << "Waiting for offline " << tram->getStockNumber() << endl;
-            all_trams.erase(it);
-        }
-    }
+	void unregisterTram(shared_ptr <TramPrx> tram, const Ice::Current&) {
+  	  for (int i = 0; i < all_trams.size(); ++i) {
+  	      if (all_trams.at(i).tram->getStockNumber() == tram->getStockNumber()) {
+   	       	  all_trams.erase(all_trams.begin() + i);
+    	        break;
+    	    }
+   	 }
+  	  for (const auto &stopInfo: all_stops) {
+     	   try {
+      	      stopInfo.stop->removeComingTram(tram, Ice::Context());
+      	  } catch (const Ice::Exception &e) {
+        	    cerr << "Błąd podczas usuwania tramwaju z przystanku: " << stopInfo.stop->getName()
+              	   << " -> " << e.what() << endl;
+        	}
+    	}
+	}
 
     void setStops(SIP::StopList sl, const Ice::Current&) override {
         all_stops = sl;
@@ -266,13 +279,21 @@ public:
         }
     }
 
-    void TramOffline(::std::shared_ptr<TramPrx> tram, const Ice::Current&) override {
-        if (tram) {
-            tram->setStatus(SIP::TramStatus::OFFLINE, Ice::Context());
-            cout << "Tram " << tram->getStockNumber() << " has entered the depot" << endl;
-        } else {
-            cout << "TRAM DOES NOT EXIST" << endl;
+    void TramOffline(::std::shared_ptr<TramPrx> tram, const Ice::Current& current) override {
+         if (tram == nullptr) {
+        	cout << "TRAM DOES NOT EXIST." << endl;
+       		return;
+    	}
+
+    		tram->setStatus(TramStatus::OFFLINE, current.ctx);
+    		cout << "Tram " << tram->getStockNumber() << " offline and in the depo" << endl;
+
+    for (auto it = all_trams.begin(); it != all_trams.end(); ++it) {
+        if (it->tram->ice_getIdentity() == tram->ice_getIdentity()) {
+            all_trams.erase(it);
+            break;
         }
+    }
     }
 
     string getName(const Ice::Current&) override {
