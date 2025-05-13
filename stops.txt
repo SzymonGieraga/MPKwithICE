@@ -12,3 +12,5 @@ Traugutta
 Maslana
 Slodowa
 Traugutta
+Dobra
+Zla
